@@ -6,5 +6,7 @@ CREATE TABLE IF NOT EXISTS blog_posts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     book_title VARCHAR(255) NOT NULL,
     author VARCHAR(255) NOT NULL,
+    genre VARCHAR(200) NOT NULL,
+    sinopsis TEXT NOT NULL,
     comments TEXT NOT NULL
 );

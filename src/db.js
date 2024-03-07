@@ -1,6 +1,6 @@
-import conn from './conn.js'
+import conn from './conn'
 
-export async function getAllPosts() {
- const [rows] = await conn.query('SELECT * FROM blog_posts')
- return rows
+export default async function getAllPosts() {
+  const [rows] = await conn.query('SELECT * FROM blog_posts')
+  return rows
 }
