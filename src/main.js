@@ -1,11 +1,31 @@
 import express from 'express'
+import cors from 'cors'
 import fs from 'fs';
 
 const app = express()
 const port = 3000
-
 // Middleware para parsear el body de las solicitudes POST
 app.use(express.json())
+app.use(cors())
+
+const swaggerJsdoc = require('swagger-jsdoc')
+const swaggerUi = require('swagger-ui-express')
+
+const options = {
+  definition: {
+    openapi: '3.0.0', // Especifica la versión de OpenAPI
+    info: {
+      title: 'Nombre de tu API', // El título de tu API
+      version: '1.0.0', // La versión de tu API
+      description: 'Descripción de tu API', // Descripción de tu API
+    },
+  },
+  // Paths a las carpetas donde se encuentran tus archivos de especificación de Swagger
+  apis: ['./src/*.js'],
+}
+
+const specs = swaggerJsdoc(options)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs))
 
 // Simulación de una base de datos de libros
 let posts = [
@@ -17,14 +37,39 @@ let posts = [
   },
 ]
 
-// GET /posts que retorna un listado de todos los posts
+/**
+ * @swagger
+ * /posts:
+ *   get:
+ *     summary: Retorna un listado de todos los posts.
+ *     responses:
+ *       200:
+ *         description: Listado de todos los posts.
+ */
 app.get('/posts', (req, res) => {
   res.status(200).json(posts)
 })
 
-// GET /posts/:postId que retorna el detalle de un post con el id postId
+/**
+ * @swagger
+ * /posts/{postId}:
+ *   get:
+ *     summary: Retorna el detalle de un post con el id postId.
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Id del post a buscar.
+ *     responses:
+ *       200:
+ *         description: Detalle del post con el id especificado.
+ *       404:
+ *         description: Post no encontrado.
+ */
 app.get('/posts/:postId', (req, res) => {
-  const postId = parseInt(req.params.postId, 10)
+  const postId = parseInt(req.params.postId.replace(/:/g, ''), 10)
   const foundPost = posts.find((post) => post.id === postId)
   if (!foundPost) {
     return res.status(404).json({ error: 'Post not found' })
@@ -32,7 +77,34 @@ app.get('/posts/:postId', (req, res) => {
   return res.status(200).json(foundPost)
 })
 
-// POST /posts que permite crear un nuevo post
+/**
+ * @swagger
+ * /posts:
+ *   post:
+ *     summary: Permite crear un nuevo post.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: integer
+ *               title:
+ *                 type: string
+ *               body:
+ *                 type: string
+ *             example:
+ *               id: 1
+ *               title: Ejemplo de título
+ *               body: Contenido del post
+ *     responses:
+ *       200:
+ *         description: Post creado exitosamente.
+ *       400:
+ *         description: Solicitud incorrecta. El cuerpo de la solicitud no debe estar vacío.
+ */
 app.post('/posts', (req, res) => {
   const newPost = req.body
   if (!newPost || Object.keys(newPost).length === 0) {
@@ -42,9 +114,42 @@ app.post('/posts', (req, res) => {
   return res.status(200).json(newPost)
 })
 
-// PUT /posts/:postId que permite modificar un post
+/**
+ * @swagger
+ * /posts/{postId}:
+ *   put:
+ *     summary: Permite modificar un post existente.
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Id del post a modificar.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               body:
+ *                 type: string
+ *             example:
+ *               title: Nuevo título
+ *               body: Nuevo contenido del post
+ *     responses:
+ *       200:
+ *         description: Post modificado exitosamente.
+ *       400:
+ *         description: Solicitud incorrecta. El cuerpo de la solicitud no debe estar vacío.
+ *       404:
+ *         description: Post no encontrado.
+ */
 app.put('/posts/:postId', (req, res) => {
-  const postId = parseInt(req.params.postId, 10)
+  const postId = parseInt(req.params.postId.replace(/:/g, ''), 10)
   const updatedPost = req.body
   if (!updatedPost || Object.keys(updatedPost).length === 0) {
     return res.status(400).json({ error: 'Bad request. Body must not be empty.' })
@@ -57,9 +162,26 @@ app.put('/posts/:postId', (req, res) => {
   return res.status(200).json(posts[index])
 })
 
-// DELETE /posts/:postId que borra un post
+/**
+ * @swagger
+ * /posts/{postId}:
+ *   delete:
+ *     summary: Borra un post con el id postId.
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Id del post a borrar.
+ *     responses:
+ *       204:
+ *         description: Post borrado exitosamente.
+ *       404:
+ *         description: Post no encontrado.
+ */
 app.delete('/posts/:postId', (req, res) => {
-  const postId = parseInt(req.params.postId, 10)
+  const postId = parseInt(req.params.postId.replace(/:/g, ''), 10)
   const initialLength = posts.length
   posts = posts.filter((post) => post.id !== postId)
   if (posts.length === initialLength) {
@@ -80,19 +202,22 @@ app.use((req, res, next) => {
 
   res.on('finish', () => {
     logData.response = res.statusCode
-    fs.appendFile('log.txt', `${JSON.stringify(logData)}\n`, (err) => {
-      if (err) {
-        console.error('Error writing to log file:', err)
-      }
-    })
+    try {
+      fs.appendFileSync('log.txt', `${JSON.stringify(logData)}\n`)
+    } catch (error) {
+      // Manejar el error de alguna manera, como registrar o enviar una notificación
+      // Por ejemplo, puedes escribir el error en otro archivo de registro
+      fs.appendFileSync('error.log', `Error writing to log file: ${error}\n`)
+    }
   })
-
   next()
 })
 
 // Manejador de errores para errores 500
 app.use((err, req, res) => {
-  console.error('Internal server error:', err)
+  // Registra el error en un archivo de registro
+  fs.appendFileSync('error.log', `Internal server error: ${err}\n`)
+  // Envía una respuesta de error al cliente
   res.status(500).json({ error: 'Internal server error' })
 })
 
