@@ -3,7 +3,7 @@ import cors from 'cors'
 import fs from 'fs';
 
 const app = express()
-const port = 3000
+const port = 22787
 // Middleware para parsear el body de las solicitudes POST
 app.use(express.json())
 app.use(cors())
