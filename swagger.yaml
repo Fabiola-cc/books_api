@@ -1,0 +1,92 @@
+swagger: '2.0'
+info:
+  version: '1.0.0'
+  title: Blog API
+  description: API para gestionar publicaciones de un blog
+basePath: /
+schemes:
+  - http
+paths:
+  /posts:
+    get:
+      summary: Obtener todos los posts
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Crear un nuevo post
+      parameters:
+        - in: body
+          name: post
+          description: Datos del nuevo post
+          required: true
+          schema:
+            $ref: '#/definitions/Post'
+      responses:
+        '201':
+          description: Created
+  /posts/{postId}:
+    get:
+      summary: Obtener un post por su ID
+      parameters:
+        - in: path
+          name: postId
+          description: ID del post a obtener
+          required: true
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Post not found
+    put:
+      summary: Actualizar un post existente
+      parameters:
+        - in: path
+          name: postId
+          description: ID del post a actualizar
+          required: true
+          type: integer
+          format: int64
+        - in: body
+          name: post
+          description: Datos actualizados del post
+          required: true
+          schema:
+            $ref: '#/definitions/Post'
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Post not found
+    delete:
+      summary: Eliminar un post
+      parameters:
+        - in: path
+          name: postId
+          description: ID del post a eliminar
+          required: true
+          type: integer
+          format: int64
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Post not found
+definitions:
+  Post:
+    type: object
+    properties:
+      id:
+        type: integer
+      book_title:
+        type: string
+      author:
+        type: string
+      genre:
+        type: string
+      sinopsis:
+        type: string
+      comments:
+        type: string

@@ -2,16 +2,25 @@
 import express from 'express'
 import cors from 'cors'
 import fs from 'fs'
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+
 import {
   getAllPosts, getPostById, insertPost, updatePost, deletePost,
 } from './db';
 
 const app = express();
-const port = 3000;
+const port = 22787;
 
 // Utilizar express.json() para analizar solicitudes con cuerpo JSON
 app.use(express.json());
 app.use(cors())
+
+// Cargar el archivo swagger.yaml
+const swaggerDocument = YAML.load('./swagger.yaml');
+
+// Middleware para servir la documentación de Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Obtener todos los posts
 app.get('/posts', async (req, res) => {
