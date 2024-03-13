@@ -1,217 +1,80 @@
+/* eslint-disable no-console */
 import express from 'express'
 import cors from 'cors'
-import fs from 'fs';
+import fs from 'fs'
+import {
+  getAllPosts, getPostById, insertPost, updatePost, deletePost,
+} from './db';
 
-const app = express()
-const port = 22787
-// Middleware para parsear el body de las solicitudes POST
-app.use(express.json())
+const app = express();
+const port = 3000;
+
+// Utilizar express.json() para analizar solicitudes con cuerpo JSON
+app.use(express.json());
 app.use(cors())
 
-const swaggerJsdoc = require('swagger-jsdoc')
-const swaggerUi = require('swagger-ui-express')
-
-const options = {
-  definition: {
-    openapi: '3.0.0', // Especifica la versión de OpenAPI
-    info: {
-      title: 'Nombre de tu API', // El título de tu API
-      version: '1.0.0', // La versión de tu API
-      description: 'Descripción de tu API', // Descripción de tu API
-    },
-  },
-  // Paths a las carpetas donde se encuentran tus archivos de especificación de Swagger
-  apis: ['./src/*.js'],
-}
-
-const specs = swaggerJsdoc(options)
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs))
-
-// Simulación de una base de datos de libros
-let posts = [
-  {
-    id: 1, book_title: 'Libro 1', author: 'Autor 1', genre: 'Género 1', synopsis: 'Sinopsis 1', comments: 'Comentarios 1',
-  },
-  {
-    id: 2, book_title: 'Libro 2', author: 'Autor 2', genre: 'Género 2', synopsis: 'Sinopsis 2', comments: 'Comentarios 2',
-  },
-]
-
-/**
- * @swagger
- * /posts:
- *   get:
- *     summary: Retorna un listado de todos los posts.
- *     responses:
- *       200:
- *         description: Listado de todos los posts.
- */
-app.get('/posts', (req, res) => {
-  res.status(200).json(posts)
-})
-
-/**
- * @swagger
- * /posts/{postId}:
- *   get:
- *     summary: Retorna el detalle de un post con el id postId.
- *     parameters:
- *       - in: path
- *         name: postId
- *         required: true
- *         schema:
- *           type: integer
- *         description: Id del post a buscar.
- *     responses:
- *       200:
- *         description: Detalle del post con el id especificado.
- *       404:
- *         description: Post no encontrado.
- */
-app.get('/posts/:postId', (req, res) => {
-  const postId = parseInt(req.params.postId.replace(/:/g, ''), 10)
-  const foundPost = posts.find((post) => post.id === postId)
-  if (!foundPost) {
-    return res.status(404).json({ error: 'Post not found' })
+// Obtener todos los posts
+app.get('/posts', async (req, res) => {
+  try {
+    const posts = await getAllPosts();
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
-  return res.status(200).json(foundPost)
-})
+});
 
-/**
- * @swagger
- * /posts:
- *   post:
- *     summary: Permite crear un nuevo post.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               id:
- *                 type: integer
- *               title:
- *                 type: string
- *               body:
- *                 type: string
- *             example:
- *               id: 1
- *               title: Ejemplo de título
- *               body: Contenido del post
- *     responses:
- *       200:
- *         description: Post creado exitosamente.
- *       400:
- *         description: Solicitud incorrecta. El cuerpo de la solicitud no debe estar vacío.
- */
-app.post('/posts', (req, res) => {
-  const newPost = req.body
-  if (!newPost || Object.keys(newPost).length === 0) {
-    return res.status(400).json({ error: 'Bad request. Body must not be empty.' })
-  }
-  posts.push(newPost)
-  return res.status(200).json(newPost)
-})
-
-/**
- * @swagger
- * /posts/{postId}:
- *   put:
- *     summary: Permite modificar un post existente.
- *     parameters:
- *       - in: path
- *         name: postId
- *         required: true
- *         schema:
- *           type: integer
- *         description: Id del post a modificar.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               body:
- *                 type: string
- *             example:
- *               title: Nuevo título
- *               body: Nuevo contenido del post
- *     responses:
- *       200:
- *         description: Post modificado exitosamente.
- *       400:
- *         description: Solicitud incorrecta. El cuerpo de la solicitud no debe estar vacío.
- *       404:
- *         description: Post no encontrado.
- */
-app.put('/posts/:postId', (req, res) => {
-  const postId = parseInt(req.params.postId.replace(/:/g, ''), 10)
-  const updatedPost = req.body
-  if (!updatedPost || Object.keys(updatedPost).length === 0) {
-    return res.status(400).json({ error: 'Bad request. Body must not be empty.' })
-  }
-  const index = posts.findIndex((post) => post.id === postId)
-  if (index === -1) {
-    return res.status(404).json({ error: 'Post not found' })
-  }
-  posts[index] = { ...posts[index], ...updatedPost }
-  return res.status(200).json(posts[index])
-})
-
-/**
- * @swagger
- * /posts/{postId}:
- *   delete:
- *     summary: Borra un post con el id postId.
- *     parameters:
- *       - in: path
- *         name: postId
- *         required: true
- *         schema:
- *           type: integer
- *         description: Id del post a borrar.
- *     responses:
- *       204:
- *         description: Post borrado exitosamente.
- *       404:
- *         description: Post no encontrado.
- */
-app.delete('/posts/:postId', (req, res) => {
-  const postId = parseInt(req.params.postId.replace(/:/g, ''), 10)
-  const initialLength = posts.length
-  posts = posts.filter((post) => post.id !== postId)
-  if (posts.length === initialLength) {
-    return res.status(404).json({ error: 'Post not found' })
-  }
-  return res.sendStatus(204)
-})
-
-// Middleware para escribir en el archivo log.txt
-app.use((req, res, next) => {
-  const logData = {
-    timestamp: new Date().toISOString(),
-    method: req.method,
-    path: req.path,
-    payload: req.body,
-    response: null,
-  }
-
-  res.on('finish', () => {
-    logData.response = res.statusCode
-    try {
-      fs.appendFileSync('log.txt', `${JSON.stringify(logData)}\n`)
-    } catch (error) {
-      // Manejar el error de alguna manera, como registrar o enviar una notificación
-      // Por ejemplo, puedes escribir el error en otro archivo de registro
-      fs.appendFileSync('error.log', `Error writing to log file: ${error}\n`)
+// Obtener un post por su ID
+app.get('/posts/:postId', async (req, res) => {
+  const postId = parseInt(req.params.postId, 10);
+  try {
+    const post = await getPostById(postId);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
     }
-  })
-  next()
-})
+    return res.status(200).json(post);
+  } catch (error) {
+    console.error('Error fetching post by ID:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Crear un nuevo post
+app.post('/posts', async (req, res) => {
+  const postData = req.body;
+  try {
+    const postId = await insertPost(postData);
+    res.status(201).json({ id: postId, ...postData });
+  } catch (error) {
+    console.error('Error creating post:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Actualizar un post existente
+app.put('/posts/:postId', async (req, res) => {
+  const postId = parseInt(req.params.postId, 10);
+  const postData = req.body;
+  try {
+    await updatePost(postId, postData);
+    res.status(200).json({ id: postId, ...postData });
+  } catch (error) {
+    console.error('Error updating post:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Eliminar un post
+app.delete('/posts/:postId', async (req, res) => {
+  const postId = parseInt(req.params.postId, 10);
+  try {
+    await deletePost(postId);
+    res.sendStatus(204);
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 // Manejador de errores para errores 500
 app.use((err, req, res) => {
