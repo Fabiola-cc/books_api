@@ -1,3 +1,4 @@
+/* eslint-disable import/extensions */
 /* eslint-disable no-console */
 import express from 'express'
 import cors from 'cors'
@@ -7,7 +8,7 @@ import YAML from 'yamljs';
 
 import {
   getAllPosts, getPostById, insertPost, updatePost, deletePost,
-} from './db';
+} from './db.js';
 
 const app = express();
 const port = 22787;
@@ -104,4 +105,6 @@ app.use((req, res) => {
 })
 
 // Iniciar el servidor
-app.listen(port)
+app.listen(port, () => {
+  console.log(`Server listening at http://127.0.0.1:${port}`)
+})

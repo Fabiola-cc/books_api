@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
-import conn from './conn'
+// eslint-disable-next-line import/extensions
+import conn from './conn.js'
 
 // Obtener posts
 export async function getAllPosts() {
